@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex project</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: "Poppins", sans-serif;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    margin: 0;
+    padding: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    color: #333;
+    position: relative;
+    overflow: hidden;
+  }
+  body::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background-image: url('https://t3.ftcdn.net/jpg/03/23/88/08/360_F_323880864_TPsH5ropjEBo1ViILJmcFHJqsBzorxUB.jpg');
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: cover;
+    opacity: 0.25;
+    animation: twinkle 4s infinite alternate;
+    z-index: 0;
+    pointer-events: none;
+  }
+  @keyframes twinkle {
+    from { opacity: 0.2; }
+    to { opacity: 0.6; }
+  }
+  .container {
+    position: absolute;
+    z-index: 1;
+    width: 90%;
+    max-width: 600px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 30px;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.25);
+    text-align: center;
+    animation: fadeIn 0.8s ease;
+    overflow: hidden;
+  }
+  h1 {
+    color: #4a148c;
+    font-size: 2.5em;
+    margin-bottom: 10px;
+  }
+  input, select, button, textarea {
+    width: 100%;
+    padding: 10px;
+    margin: 7px 0 15px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+    transition: all 0.3s ease;
+  }
+  input:focus, select:focus, textarea:focus {
+    border-color: #7e57c2;
+    outline: none;
+    box-shadow: 0 0 5px #7e57c2;
+  }
+  button {
+    background: linear-gradient(45deg, #7e57c2, #512da8);
+    color: white;
+    border: none;
+    cursor: pointer;
+    font-size: 1.05em;
+    border-radius: 10px;
+    padding: 12px;
+    transition: all 0.3s ease;
+  }
+  button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 5px 15px rgba(126,87,194,0.4);
+  }
+  .hidden { display: none; }
+  .option-btn {
+    display: block;
+    width: 100%;
+    background: #f3e5f5;
+    color: #4a148c;
+    border: 2px solid #ba68c8;
+    padding: 10px;
+    border-radius: 8px;
+    margin: 5px 0;
+    font-weight: 500;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+  .option-btn:hover {
+    background: #ce93d8;
+    color: white;
+  }
+  .progress-bar {
+    height: 8px;
+    width: 0%;
+    background: linear-gradient(90deg, #7b1fa2, #ab47bc);
+    border-radius: 4px;
+    margin-bottom: 15px;
+    transition: width 0.4s ease;
+  }
+  #liveScore {
+    margin-top: 12px;
+    font-weight: bold;
+    color: #4a148c;
+    font-size: 1.2em;
+  }
+  @keyframes fadeIn {
+    from {opacity: 0; transform: translateY(30px);}
+    to {opacity: 1; transform: translateY(0);}
+  }
+</style>
+</head>
+<body>
+<canvas id="confettiCanvas"></canvas>
+
+<div class="container">
+  <div id="welcomeSlide">
+    <h1>QUIZ BRIZZ</h1>
+    <p style="color:#555; font-size:1.1em;">Create, Play, and Share Interactive Quizzes!</p>
+    <button id="startBtn">Start</button>
+  </div>
+
+  <div id="modeSlide" class="hidden">
+    <h2>Choose an Option</h2>
+    <button id="createBtn">🛠 Create Quiz</button>
+    <button id="loadBtn">🎮 Play Quiz</button>
+  </div>
+
+  <div id="createSection" class="hidden">
+    <h3>Create Question</h3>
+    <input type="text" id="questionInput" placeholder="Enter your question">
+    <label>Number of Options:</label>
+    <select id="numOptions">
+      <option value="2">2 Options</option>
+      <option value="3">3 Options</option>
+      <option value="4">4 Options</option>
+    </select>
+    <div id="optionsArea"></div>
+    <select id="correctAnswer">
+      <option value="">Select Correct Answer</option>
+    </select>
+    <button id="addQuestion">Add Question</button>
+    <button id="finishCreation">Next ➡</button>
+    <button id="backToMode1">⬅ Back</button>
+  </div>
+
+  <div id="shareSection" class="hidden">
+    <h3>🎉 Your Quiz is Ready!</h3>
+    <p>Click below to generate a shareable quiz code.</p>
+    <button id="generateCode">Generate Share Code</button>
+    <textarea id="shareCode" placeholder="Your share code will appear here..." readonly style="height:80px;"></textarea>
+    <button id="copyCode">📋 Copy Code</button>
+    <button id="startQuiz">▶ Start Quiz</button>
+    <button id="backToMode2">⬅ Back</button>
+  </div>
+
+  <div id="loadSection" class="hidden">
+    <h3>🎮 Play Quiz</h3>
+    <textarea id="loadCode" placeholder="Paste quiz code here" style="height:80px;"></textarea>
+    <button id="loadQuiz">Play</button>
+    <button id="backToMode3">⬅ Back</button>
+  </div>
+
+  <div id="quizSection" class="hidden">
+    <div class="progress-bar" id="progressBar"></div>
+    <h3 id="quizQuestion"></h3>
+    <div id="optionsContainer"></div>
+    <div id="liveScore"></div>
+  </div>
+
+  <div id="resultSection" class="hidden">
+    <h2>Your Score: <span id="scoreDisplay"></span></h2>
+    <button id="restartQuiz">🔁 Restart</button>
+  </div>
+</div>
+
+<!-- Confetti Library -->
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<script>
+  let questions = [];
+  let currentQuestion = 0;
+  let score = 0;
+
+  const welcomeSlide = document.getElementById('welcomeSlide');
+  const modeSlide = document.getElementById('modeSlide');
+  const createSection = document.getElementById('createSection');
+  const shareSection = document.getElementById('shareSection');
+  const loadSection = document.getElementById('loadSection');
+  const quizSection = document.getElementById('quizSection');
+  const resultSection = document.getElementById('resultSection');
+  const quizQuestion = document.getElementById('quizQuestion');
+  const optionsContainer = document.getElementById('optionsContainer');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const optionsArea = document.getElementById('optionsArea');
+  const correctAnswer = document.getElementById('correctAnswer');
+  const numOptions = document.getElementById('numOptions');
+  const progressBar = document.getElementById('progressBar');
+  const liveScore = document.getElementById('liveScore');
+
+  document.getElementById('startBtn').onclick = () => switchSlide(welcomeSlide, modeSlide);
+  document.getElementById('createBtn').onclick = () => switchSlide(modeSlide, createSection);
+  document.getElementById('loadBtn').onclick = () => switchSlide(modeSlide, loadSection);
+  document.getElementById('backToMode1').onclick = () => switchSlide(createSection, modeSlide);
+  document.getElementById('backToMode2').onclick = () => switchSlide(shareSection, modeSlide);
+  document.getElementById('backToMode3').onclick = () => switchSlide(loadSection, modeSlide);
+
+  function switchSlide(hide, show) {
+    hide.classList.add('hidden');
+    show.classList.remove('hidden');
+  }
+
+  function renderOptionInputs() {
+    const count = parseInt(numOptions.value);
+    optionsArea.innerHTML = '';
+    correctAnswer.innerHTML = '<option value="">Select Correct Answer</option>';
+    for (let i = 1; i <= count; i++) {
+      const label = String.fromCharCode(64 + i);
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.id = `option${label}`;
+      input.placeholder = `Option ${label}`;
+      optionsArea.appendChild(input);
+
+      const opt = document.createElement('option');
+      opt.value = label;
+      opt.textContent = `Option ${label}`;
+      correctAnswer.appendChild(opt);
+    }
+  }
+  numOptions.addEventListener('change', renderOptionInputs);
+  renderOptionInputs();
+
+  document.getElementById('addQuestion').onclick = () => {
+    const questionText = document.getElementById('questionInput').value.trim();
+    if (!questionText || !correctAnswer.value) {
+      alert('Please fill in all fields!');
+      return;
+    }
+    const count = parseInt(numOptions.value);
+    const options = [];
+    for (let i = 1; i <= count; i++) {
+      const label = String.fromCharCode(64 + i);
+      const val = document.getElementById(`option${label}`).value.trim();
+      if (!val) return alert(`Please fill Option ${label}`);
+      options.push(val);
+    }
+    questions.push({ question: questionText, options, correct: correctAnswer.value });
+    alert('✅ Question added!');
+    document.getElementById('questionInput').value = '';
+    renderOptionInputs();
+  };
+
+  document.getElementById('finishCreation').onclick = () => {
+    if (questions.length === 0) {
+      alert('Add at least one question!');
+      return;
+    }
+    switchSlide(createSection, shareSection);
+  };
+
+  document.getElementById('generateCode').onclick = () => {
+    if (questions.length === 0) {
+      alert('No questions found!');
+      return;
+    }
+    const code = btoa(JSON.stringify(questions));
+    document.getElementById('shareCode').value = code;
+  };
+
+  document.getElementById('copyCode').onclick = () => {
+    const code = document.getElementById('shareCode');
+    code.select();
+    document.execCommand('copy');
+    alert('📋 Code copied to clipboard!');
+  };
+
+  document.getElementById('startQuiz').onclick = () => {
+    if (questions.length === 0) {
+      alert('Add some questions first!');
+      return;
+    }
+    switchSlide(shareSection, quizSection);
+    currentQuestion = 0;
+    score = 0;
+    showQuestion();
+  };
+
+  function showQuestion() {
+    const q = questions[currentQuestion];
+    quizQuestion.textContent = q.question;
+    optionsContainer.innerHTML = '';
+    q.options.forEach((opt, i) => {
+      const label = String.fromCharCode(65 + i);
+      const btn = document.createElement('button');
+      btn.textContent = `${label}: ${opt}`;
+      btn.className = 'option-btn';
+      btn.onclick = () => selectAnswer(label);
+      optionsContainer.appendChild(btn);
+    });
+    updateProgress();
+    updateLiveScore();
+  }
+
+  function confettiBlast() {
+    confetti({
+      particleCount: 200,
+      spread: 100,
+      origin: { y: 0.6 },
+      startVelocity: 45,
+      scalar: 1.2,
+    });
+  }
+
+  function selectAnswer(answer) {
+    if (answer === questions[currentQuestion].correct) {
+      score++;
+      confettiBlast();
+    }
+    currentQuestion++;
+    updateLiveScore();
+    if (currentQuestion < questions.length) showQuestion();
+    else finishQuiz();
+  }
+
+  function updateProgress() {
+    const progress = ((currentQuestion) / questions.length) * 100;
+    progressBar.style.width = `${progress}%`;
+  }
+
+  function updateLiveScore() {
+    liveScore.textContent = `⭐ Score: ${score} / ${questions.length}`;
+  }
+
+  function finishQuiz() {
+    progressBar.style.width = '100%';
+    switchSlide(quizSection, resultSection);
+    scoreDisplay.textContent = `${score} / ${questions.length}`;
+    questions = [];
+  }
+
+  document.getElementById('restartQuiz').onclick = () => {
+    switchSlide(resultSection, welcomeSlide);
+    progressBar.style.width = '0%';
+  };
+
+  document.getElementById('loadQuiz').onclick = () => {
+    const code = document.getElementById('loadCode').value.trim();
+    if (!code) return alert('Please paste a quiz code!');
+    try {
+      questions = JSON.parse(atob(code));
+      alert('Quiz loaded! Click OK to begin.');
+      switchSlide(loadSection, quizSection);
+      currentQuestion = 0;
+      score = 0;
+      showQuestion();
+    } catch {
+      alert('Invalid code!');
+    }
+  };
+
+  window.onload = () => questions = [];
+</script>
+</body>
+</html>
